@@ -1,0 +1,7 @@
+# One phrase per line.
+# Blank lines are ignored.
+# Lines starting with # are comments.
+
+old contact information
+example footer text
+example repeated phrase
