@@ -24,3 +24,49 @@ This tool runs locally and does **not** call any AI model or remote API.
 
 ```bash
 pip install -r requirements.txt
+Usage
+
+Create a keyword file:
+
+old contact text
+example footer
+example repeated phrase
+
+Preview matches without writing output:
+
+python pdf_text_redactor.py --input input.pdf --keyword-file keywords.txt --dry-run
+
+Redact one PDF:
+
+python pdf_text_redactor.py --input input.pdf --output output.pdf --keyword-file keywords.txt
+
+Redact all PDFs in a folder:
+
+python pdf_text_redactor.py --input ./pdfs --output ./cleaned_pdfs --keyword-file keywords.txt
+Keyword file format
+
+Use one phrase per line.
+
+Blank lines are ignored. Lines beginning with # are treated as comments.
+
+Example:
+
+# Old footer text
+example phrase 1
+example phrase 2
+old contact information
+Notes
+
+This tool works best when the target phrase exists as searchable PDF text.
+
+It may not work well for:
+
+scanned PDFs
+image-based watermarks
+transparent graphical watermarks
+text flattened into page images
+Safety
+
+Do not upload private PDFs, API keys, credentials, or generated confidential files to this repository.
+
+Only use this tool on documents you own or are authorized to modify.
