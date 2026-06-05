@@ -1,175 +1,74 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-PDF Text Redactor
+# PDF Text Redactor
 
-A small local utility for redacting configured text phrases from PDFs using PyMuPDF.
-Use it only on documents you own or are authorized to edit.
+A small local Python utility for redacting configured text phrases from PDF files using PyMuPDF.
 
-It does not call any AI service or remote API.
-"""
+This project is intended for documents you own or are authorized to edit. It can be useful for removing repeated visible text such as old contact information, internal labels, outdated footers, or other configured phrases.
 
-from __future__ import annotations
+It does **not** call any AI service or remote API.
 
-import argparse
-import sys
-from pathlib import Path
-from typing import Iterable, List
+## Features
 
-import fitz  # PyMuPDF
+* Redact configured text phrases from PDF files
+* Process a single PDF or a folder of PDFs
+* Use a keyword list from a text file
+* Optional dry-run mode before writing output
+* Runs locally with PyMuPDF
 
+## Installation
 
-def read_keywords(values: Iterable[str], keyword_file: str | None) -> List[str]:
-    keywords: List[str] = []
+```bash
+pip install -r requirements.txt
+```
 
-    for value in values:
-        value = value.strip()
-        if value:
-            keywords.append(value)
+## Usage
 
-    if keyword_file:
-        path = Path(keyword_file)
-        if not path.exists():
-            raise FileNotFoundError(f"Keyword file not found: {path}")
-        for line in path.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if line and not line.startswith("#"):
-                keywords.append(line)
+Redact one PDF:
 
-    # Preserve order while removing duplicates.
-    seen = set()
-    unique: List[str] = []
-    for keyword in keywords:
-        if keyword not in seen:
-            seen.add(keyword)
-            unique.append(keyword)
+```bash
+python pdf_text_redactor.py --input input.pdf --output output.pdf --keyword-file keywords.txt
+```
 
-    if not unique:
-        raise ValueError("No keywords provided. Use --keyword or --keyword-file.")
-    return unique
+Redact all PDFs in a folder:
 
+```bash
+python pdf_text_redactor.py --input ./pdfs --output ./cleaned --keyword-file keywords.txt
+```
 
-def redact_pdf_by_text(
-    input_path: Path,
-    output_path: Path,
-    keywords: List[str],
-    *,
-    padding: float = 2.0,
-    dry_run: bool = False,
-) -> int:
-    """Redact every occurrence of each keyword in a text-based PDF."""
-    doc = fitz.open(input_path)
-    redaction_count = 0
+Preview matches without writing output:
 
-    try:
-        for page in doc:
-            for keyword in keywords:
-                matches = page.search_for(keyword)
-                for rect in matches:
-                    rect.x0 -= padding
-                    rect.y0 -= padding
-                    rect.x1 += padding
-                    rect.y1 += padding
-                    redaction_count += 1
-                    if not dry_run:
-                        page.add_redact_annot(rect, fill=(1, 1, 1))
+```bash
+python pdf_text_redactor.py --input input.pdf --keyword-file keywords.txt --dry-run
+```
 
-            if not dry_run:
-                page.apply_redactions()
+## Keyword file format
 
-        if not dry_run:
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-            doc.save(output_path, garbage=3, deflate=True)
-    finally:
-        doc.close()
+Create a plain text file such as `keywords.txt`:
 
-    return redaction_count
+```text
+example phrase 1
+example phrase 2
+old footer text
+```
 
+Each non-empty line is treated as one phrase to search and redact.
 
-def iter_pdf_files(input_path: Path, recursive: bool = False) -> List[Path]:
-    if input_path.is_file():
-        if input_path.suffix.lower() != ".pdf":
-            raise ValueError(f"Input file is not a PDF: {input_path}")
-        return [input_path]
+## Notes
 
-    if not input_path.is_dir():
-        raise FileNotFoundError(f"Input path not found: {input_path}")
+This tool works best when the target phrase exists as searchable PDF text.
 
-    pattern = "**/*.pdf" if recursive else "*.pdf"
-    return sorted(input_path.glob(pattern))
+It may not work well for:
 
+* scanned PDFs
+* image-based watermarks
+* text flattened into page images
+* complex transparent graphical watermarks
 
-def build_output_path(input_pdf: Path, input_root: Path, output_dir: Path, suffix: str) -> Path:
-    if input_root.is_dir():
-        relative = input_pdf.relative_to(input_root)
-        return output_dir / relative.with_name(relative.stem + suffix + relative.suffix)
-    return output_dir / (input_pdf.stem + suffix + input_pdf.suffix)
+## Safety
 
+Do not upload private PDFs, API keys, credentials, or generated confidential files to this repository.
 
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Redact configured text phrases from local PDFs. No AI/API calls."
-    )
-    parser.add_argument("input", help="Input PDF file or directory containing PDFs")
-    parser.add_argument("--output-dir", default="cleaned_pdfs", help="Directory for redacted PDFs")
-    parser.add_argument(
-        "--keyword",
-        action="append",
-        default=[],
-        help="Text phrase to redact. Can be supplied multiple times.",
-    )
-    parser.add_argument("--keyword-file", help="UTF-8 text file with one phrase per line")
-    parser.add_argument("--suffix", default="_redacted", help="Suffix for output filenames")
-    parser.add_argument("--padding", type=float, default=2.0, help="Rectangle padding around matched text")
-    parser.add_argument("--recursive", action="store_true", help="Search directories recursively")
-    parser.add_argument("--dry-run", action="store_true", help="Count matches without writing output files")
-    return parser.parse_args()
+Only use this tool on documents you own or are authorized to modify.
 
+## License
 
-def main() -> int:
-    if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
-        try:
-            sys.stdout.reconfigure(encoding="utf-8")
-        except Exception:
-            pass
-
-    args = parse_args()
-    input_path = Path(args.input).expanduser().resolve()
-    output_dir = Path(args.output_dir).expanduser().resolve()
-    keywords = read_keywords(args.keyword, args.keyword_file)
-    pdf_files = iter_pdf_files(input_path, recursive=args.recursive)
-
-    if not pdf_files:
-        print("No PDF files found.")
-        return 0
-
-    print(f"Found {len(pdf_files)} PDF file(s).")
-    print(f"Keywords: {len(keywords)}")
-    if args.dry_run:
-        print("Dry run mode: no files will be written.")
-
-    total = 0
-    for pdf in pdf_files:
-        output_path = build_output_path(pdf, input_path if input_path.is_dir() else pdf, output_dir, args.suffix)
-        try:
-            count = redact_pdf_by_text(
-                pdf,
-                output_path,
-                keywords,
-                padding=args.padding,
-                dry_run=args.dry_run,
-            )
-            total += count
-            if args.dry_run:
-                print(f"[DRY RUN] {pdf.name}: {count} match(es)")
-            else:
-                print(f"[OK] {pdf.name}: redacted {count} match(es) -> {output_path}")
-        except Exception as exc:
-            print(f"[ERROR] {pdf.name}: {exc}")
-
-    print(f"Done. Total redactions: {total}")
-    return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
+MIT License
