@@ -1,22 +1,36 @@
+
+---
+
+## 4. `.gitignore`
+
+```gitignore
 # Python
 __pycache__/
 *.py[cod]
+*.pyo
+*.pyd
+*.pyc
+
+# Virtual environments
 .venv/
 venv/
 env/
 
-# Secrets
+# Local/private files
 .env
 *.key
 *.pem
 *.p12
 *.json
 
-# Private documents and generated outputs
+# PDFs and generated outputs
 *.pdf
-cleaned_pdfs/
 output/
 outputs/
+cleaned/
+cleaned_pdfs/
+dist/
+build/
 
 # OS / IDE
 .DS_Store
