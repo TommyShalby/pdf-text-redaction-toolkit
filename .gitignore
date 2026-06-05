@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Local/private files
+.env
+*.key
+*.pem
+*.p12
+*.json
+
+# PDFs and generated outputs
+*.pdf
+output/
+outputs/
+cleaned/
+dist/
+build/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
