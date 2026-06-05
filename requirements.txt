@@ -1,0 +1,59 @@
+# PDF Text Redaction Toolkit
+
+A small local Python utility for redacting configured text phrases from PDF files using PyMuPDF.
+
+It is designed for documents you own or are authorized to edit, such as drafts, internal handouts, exported notes, or files that contain repeated footer/header text you need to remove before personal archiving.
+
+## What it does
+
+- Searches text-based PDFs for configured phrases.
+- Applies white redaction boxes over matching text regions.
+- Processes one PDF or a directory of PDFs.
+- Supports dry-run mode to count matches before writing files.
+- Runs locally and does **not** call any AI model or remote API.
+
+## What it does not do
+
+- It does not bypass DRM, passwords, or access controls.
+- It does not reliably remove watermarks embedded as images.
+- It should not be used to remove ownership marks from documents you are not allowed to modify.
+
+## Installation
+
+```bash
+pip install -r requirements.txt
+```
+
+## Usage
+
+Redact one phrase from one PDF:
+
+```bash
+python pdf_text_redactor.py input.pdf --keyword "CONFIDENTIAL"
+```
+
+Use a keyword list:
+
+```bash
+python pdf_text_redactor.py ./pdfs --keyword-file examples/keywords.example.txt --output-dir ./cleaned_pdfs
+```
+
+Preview without writing output files:
+
+```bash
+python pdf_text_redactor.py ./pdfs --keyword-file examples/keywords.example.txt --dry-run
+```
+
+Process subfolders recursively:
+
+```bash
+python pdf_text_redactor.py ./pdfs --keyword-file examples/keywords.example.txt --recursive
+```
+
+## Notes
+
+This tool works best when the target text exists as selectable PDF text. If a watermark is a scanned image, background image, or vector drawing, text search may not find it.
+
+## Responsible use
+
+Only use this utility on documents you own, created yourself, or have permission to edit. Do not upload private documents, copyrighted teaching materials, generated cleaned PDFs, credentials, or API keys to this repository.
